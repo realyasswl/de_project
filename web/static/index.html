@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/pikaday.css">
+    <link rel="stylesheet" href="/static/jquery-ui.min.css">
+
+
+    <script src="/static/jquery-2.2.0.js" charset="utf-8"></script>
+    <script src="/static/moment.js" charset="utf-8"></script>
+    <script src="/static/d3.js" charset="utf-8"></script>
+    <script src="/static/li.js" charset="utf-8"></script>
+    <script src="/static/pikaday.js" charset="utf-8"></script>
+    <script src="/static/jquery-ui.min.js" charset="utf-8"></script>
+    <script>
+        var baseurl = "http://localhost:10000/";
+
+        var data; // a global
+
+        var width = 1500,
+                height = 800;
+
+        var color = d3.scale.category20();
+
+        var force = d3.layout.force()
+                .charge(-120)
+                .linkDistance(30)
+                .size([width, height]);
+
+        function init() {
+            d3.select(".svgcontainer").append("svg").attr("class", "svga")
+                    .attr("width", width)
+                    .attr("height", height);
+        }
+        init();
+        function form1submit() {
+            var ts = $("#datepicker").val()
+                    + fmt($("#m22").val()) + fmt($("#min").val()) + fmt($("#sec").val());
+
+            d3.select("#msg").text("searching");
+            d3.csv(baseurl + "search?q=" + moment(ts).unix(), function (error, csv) {
+                if (error) return console.warn(error);
+                d3.select("#msg").text(csv.length + " records");
+                var svg = d3.select(".svga");
+                svg.selectAll("*").remove();
+                console.log(csv);
+                var nodes = {};
+                var links = csv;
+// Compute the distinct nodes from the links.
+                links.forEach(function (link) {
+                    link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+                    link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+                });
+                force.nodes(d3.values(nodes))
+                        .links(links)
+                        .start();
+
+                var link = svg.selectAll(".link")
+                        .data(links)
+                        .enter().append("line")
+                        .attr("class", "link");
+
+                var node = svg.selectAll(".node")
+                        .data(force.nodes())
+                        .enter().append("circle")
+                        .attr("class", "node")
+                        .attr("r", 5)
+                        .style("fill", function (d) {
+                            return color(d.group);
+                        })
+                        .call(force.drag);
+
+                node.append("title")
+                        .text(function (d) {
+                            return d.name;
+                        });
+
+                force.on("tick", function () {
+                    link.attr("x1", function (d) {
+                                return d.source.x;
+                            })
+                            .attr("y1", function (d) {
+                                return d.source.y;
+                            })
+                            .attr("x2", function (d) {
+                                return d.target.x;
+                            })
+                            .attr("y2", function (d) {
+                                return d.target.y;
+                            });
+
+                    node.attr("cx", function (d) {
+                                return d.x;
+                            })
+                            .attr("cy", function (d) {
+                                return d.y;
+                            });
+                });
+            });
+        }
+        function fmt(s) {
+            return parseInt(s) < 10 ? "0" + s : s;
+        }
+    </script>
+    <style>
+        .wrapper {
+            margin: 12px;
+        }
+
+        .svgcontainer {
+            float: right;
+            margin: 2px;
+            width: 1500px;
+            height: 800px;
+        }
+
+        .control {
+            margin: 4px;
+            float: left;
+            width: 300px;
+            height: 400px;
+        }
+
+        .timeinput {
+            width: 48px;
+        }
+
+        .dateinput {
+            text-align: center;
+            width: 174px;
+        }
+
+        .link {
+            stroke-width: 2px;
+            stroke: green;
+        }
+
+    </style>
+</head>
+<body onload="init()">
+<div class="wrapper">
+    <div class="svgcontainer"></div>
+    <div class="control">
+        <label>Date &amp; time:</label>
+        <div style="margin: 4px">
+            <input class="dateinput" type="text" id="datepicker">
+        </div>
+        <div style="margin: 4px">
+            <input class="timeinput" name="hours" type="text" id="m22" value="0" size="2"
+                   maxlength="2" placeholder="HH">
+            :
+            <input class="timeinput" name="min" type="text" id="min" value="0" size="2"
+                   maxlength="2"
+                   placeholder="MM">
+            :
+            <input class="timeinput" name="sec" type="text" id="sec" value="0" size="2"
+                   maxlength="2"
+                   placeholder="SS">
+            (24h:min:sec)
+        </div>
+        <p>
+            <label for="amount">AuthorId:</label>
+            <input type="text" id="amount" readonly style="border:0; font-size: 14px">
+        </p>
+
+        <div id="slider-range"></div>
+        <p>
+            <button onclick="form1submit()">Query</button>
+        </p>
+        <p id="msg"></p>
+    </div>
+</div>
+<script>
+    $(function () {
+        $("#slider-range").slider({
+            range: true,
+            min: 0,
+            max: 1314050,
+            values: [0, 200],
+            slide: function (event, ui) {
+                $("#amount").val(ui.values[0] + " to " + ui.values[1]);
+            }
+        });
+        $("#amount").val($("#slider-range").slider("values", 0) +
+                " to " + $("#slider-range").slider("values", 1));
+    });
+    var picker = new Pikaday({
+        format: 'YYYY-MM-DD',
+        field: document.getElementById('datepicker'),
+        firstDay: 1,
+        minDate: new Date(1900, 0, 1),
+        maxDate: new Date(2020, 12, 31),
+        yearRange: [1900, 2020]
+    });
+</script>
+</body>
+</html>
