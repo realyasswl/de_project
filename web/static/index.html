@@ -36,11 +36,17 @@
         }
         init();
         function form1submit() {
-            var ts = $("#datepicker").val()
-                    + fmt($("#m22").val()) + fmt($("#min").val()) + fmt($("#sec").val());
 
+            var q = {
+                timestart: parseInt($("#timestart").val()),
+                timeend: parseInt($("#timeend").val()),
+                sid: parseInt($("#sid").val()),
+                eid: parseInt($("#eid").val())
+            }
             d3.select("#msg").text("searching");
-            d3.csv(baseurl + "search?q=" + moment(ts).unix(), function (error, csv) {
+            d3.csv(baseurl + "search?" + Object.keys(q).map(function (d) {
+                        return d + "=" + q[d];
+                    }).join("&"), function (error, csv) {
                 if (error) return console.warn(error);
                 d3.select("#msg").text(csv.length + " records");
                 var svg = d3.select(".svga");
@@ -144,6 +150,11 @@
     <div class="svgcontainer"></div>
     <div class="control">
         <label>Date &amp; time:</label>
+        <input type="text" id="timestart" readonly style="border:0; font-size: 14px">
+        to
+        <input type="text" id="timeend" readonly style="border:0; font-size: 14px">
+        <div id="time-range"></div>
+        <!--
         <div style="margin: 4px">
             <input class="dateinput" type="text" id="datepicker">
         </div>
@@ -160,12 +171,14 @@
                    placeholder="SS">
             (24h:min:sec)
         </div>
+        -->
         <p>
             <label for="amount">AuthorId:</label>
-            <input type="text" id="amount" readonly style="border:0; font-size: 14px">
+            <input type="text" id="sid" readonly style="border:0; font-size: 14px">
+            to
+            <input type="text" id="eid" readonly style="border:0; font-size: 14px">
         </p>
-
-        <div id="slider-range"></div>
+        <div id="amount-range"></div>
         <p>
             <button onclick="form1submit()">Query</button>
         </p>
@@ -174,25 +187,40 @@
 </div>
 <script>
     $(function () {
-        $("#slider-range").slider({
+        $("#amount-range").slider({
             range: true,
             min: 0,
             max: 1314050,
-            values: [0, 200],
+            values: [0, 1000],
             slide: function (event, ui) {
-                $("#amount").val(ui.values[0] + " to " + ui.values[1]);
+                $("#sid").val(ui.values[0]);
+                $("#eid").val(ui.values[1]);
             }
         });
-        $("#amount").val($("#slider-range").slider("values", 0) +
-                " to " + $("#slider-range").slider("values", 1));
+        $("#sid").val($("#amount-range").slider("values", 0));
+        $("#eid").val($("#amount-range").slider("values", 1));
+    });
+    $(function () {
+        $("#time-range").slider({
+            range: true,
+            min: 1938,
+            max: 2014,
+            values: [1938, 2014],
+            slide: function (event, ui) {
+                $("#timestart").val(ui.values[0]);
+                $("#timeend").val(ui.values[1]);
+            }
+        });
+        $("#timestart").val($("#time-range").slider("values", 0));
+        $("#timeend").val($("#time-range").slider("values", 1));
     });
     var picker = new Pikaday({
         format: 'YYYY-MM-DD',
         field: document.getElementById('datepicker'),
         firstDay: 1,
-        minDate: new Date(1900, 0, 1),
-        maxDate: new Date(2020, 12, 31),
-        yearRange: [1900, 2020]
+        minDate: new Date(1938, 0, 1),
+        maxDate: new Date(2014, 12, 31),
+        yearRange: [1938, 2014]
     });
 </script>
 </body>
