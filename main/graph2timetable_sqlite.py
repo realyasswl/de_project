@@ -1,8 +1,10 @@
 import sqlite3, pickle
 import datetime as dt
 import pytz
+import os
 
 base_dir = "/home/liwang/STUDY/Y1Q3/de/coauthor/dblp_coauthor/"
+project_dir = "/home/liwang/PycharmProjects/dm_project/"
 conn = sqlite3.connect(base_dir + "sqlite3.db")
 c = conn.cursor()
 '''
@@ -64,6 +66,21 @@ def get_snap(timestart, timeend, sid=0, eid=100):
     return noderes, linkres
 
 
+def get_distribution():
+    query = "select count(*),timestamp from relationship group by timestamp order by timestamp"
+    rs = c.execute(query)
+    result = []
+    for row in rs:
+        result.append(row)
+    return result
+
+
+def tupleList2csv(list, csvheader):
+    return "\n".join([",".join(csvheader),
+                      "\n".join([",".join([str(x) for x in row]) for row in list])
+                      ])
+
+
 def year2timestamp(year):
     '''the timestamp at which papers are published are all 61 seconds after 01/01/year @ 12:00am (UTC)
     we use year parameter to generate the timestamp
@@ -71,6 +88,20 @@ def year2timestamp(year):
     return dt.datetime(int(year), 1, 1, 0, 1, 1, 0, pytz.UTC).timestamp()
 
 
+def get_distribution_from_file():
+    try:
+        f = open("%sdistribution" % project_dir, "rb")
+        return pickle.load(f)
+    except FileNotFoundError:
+        print("FileNotFoundError")
+        result = get_distribution()
+        os.mknod("%sdistribution" % project_dir)
+        f1 = open("%sdistribution" % project_dir, "wb")
+        pickle.dump(result, f1)
+        f1.close()
+        return result
+
+
 if __name__ == "__main__":
-    dump_relationship_dist(min=dt.datetime.strptime("19990301000000", "%Y%m%d%H%M%S"),
-                           max=dt.datetime.strptime("19990401000000", "%Y%m%d%H%M%S"))
+    re = get_distribution_from_file()
+    print(re)

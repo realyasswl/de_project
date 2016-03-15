@@ -16,11 +16,16 @@
     <script src="/static/jquery-ui.min.js" charset="utf-8"></script>
     <script>
         var baseurl = "http://localhost:10000/";
-
+        var control_width = 380;
+        var interval = 1000;
+        var margin = {top: 40, right: 40, bottom: 12, left: 12};
         var data; // a global
-
-        var width = 1500,
-                height = 800;
+        var barchart = {
+            width: 420 - margin.left - margin.right,
+            height: window.innerHeight - 40 - margin.top - margin.bottom
+        }
+        var width = barchart.height,
+                height = barchart.height;
 
         var color = d3.scale.category20();
 
@@ -28,15 +33,82 @@
                 .charge(-120)
                 .linkDistance(30)
                 .size([width, height]);
+        var dist = [];
 
         function init() {
-            d3.select(".svgcontainer").append("svg").attr("class", "svga")
-                    .attr("width", width)
-                    .attr("height", height);
-        }
-        init();
-        function form1submit() {
+            d3.select(".svgcontainer").append("svg").attr("class", "svgc")
+                    .attr("width", window.innerWidth - control_width)
+                    .attr("height", barchart.height + margin.top + margin.bottom);
 
+            var svgb = d3.select("svg").append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                    .attr("class", "svgb").attr("width", barchart.width + margin.left + margin.right)
+                    .attr("height", barchart.height + margin.top + margin.bottom);
+
+            d3.select("svg").append("g").attr("transform", "translate(" +
+                            ((window.innerWidth - control_width - barchart.width - height) / 2
+                            + barchart.width + margin.left + margin.right) + ",15)")
+                    .attr("class", "svga").attr("width", width)
+                    .attr("height", height);
+            d3.csv(baseurl + "init", function (error, csv) {
+                if (error) return console.warn(error);
+                dist = csv;
+                var x = d3.scale.ordinal()
+                        .rangeRoundBands([0, barchart.height], .1);
+
+                var y = d3.scale.linear()
+                        .range([barchart.width, 0]);
+
+                var xAxis = d3.svg.axis()
+                        .scale(x)
+                        .orient("right");
+
+                var yAxis = d3.svg.axis()
+                        .scale(y)
+                        .orient("top").tickFormat(function (d) {
+                            return (d / 1000).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "k";
+                        })
+
+                x.domain(dist.map(function (d) {
+                    return moment.unix(d.timestamp).format("YY");
+                }));
+                y.domain([0, d3.max(dist, function (d) {
+                    return parseInt(d.count);
+                })]);
+
+                svgb.append("g")
+                        .attr("class", "x axis")
+                        .attr("transform", "translate(" + barchart.width + ",0)")
+                        .call(xAxis);
+
+                svgb.append("g")
+                        .attr("class", "y axis")
+                        .call(yAxis)
+                        .append("text")
+                        //                                                .attr("transform", "rotate(90)")
+                        .attr("y", -30)
+                        .attr("dy", ".71em")
+                        .attr("x", 20)
+                        .style("text-anchor", "end")
+                        .text("Count");
+
+                svgb.selectAll(".bar")
+                        .data(dist)
+                        .enter().append("rect")
+                        .attr("class", "bar")
+                        .attr("x", function (d) {
+                            return y(d.count);
+                        })
+                        .attr("width", function (d) {
+                            return barchart.width - y(d.count);
+                        })
+                        .attr("y", function (d) {
+                            return x(moment.unix(d.timestamp).format("YY"));
+                        })
+                        .attr("height", x.rangeBand());
+
+            })
+        }
+        function form1submit() {
             var q = {
                 timestart: parseInt($("#timestart").val()),
                 timeend: parseInt($("#timeend").val()),
@@ -85,23 +157,23 @@
 
                 force.on("tick", function () {
                     link.attr("x1", function (d) {
-                                return d.source.x;
+                                return Math.max(5, Math.min(width - 5, d.source.x));
                             })
                             .attr("y1", function (d) {
-                                return d.source.y;
+                                return Math.max(5, Math.min(height - 5, d.source.y));
                             })
                             .attr("x2", function (d) {
-                                return d.target.x;
+                                return Math.max(5, Math.min(width - 5, d.target.x));
                             })
                             .attr("y2", function (d) {
-                                return d.target.y;
+                                return Math.max(5, Math.min(height - 5, d.target.y));
                             });
 
                     node.attr("cx", function (d) {
-                                return d.x;
+                                return Math.max(5, Math.min(width - 5, d.x));
                             })
                             .attr("cy", function (d) {
-                                return d.y;
+                                return Math.max(5, Math.min(height - 5, d.y));
                             });
                 });
             });
@@ -111,22 +183,40 @@
         }
     </script>
     <style>
+        .bar {
+            fill: #f6a828;
+        }
+
+        .axis text {
+            font: 10px sans-serif;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .x.axis path {
+            display: none;
+        }
+
         .wrapper {
-            margin: 12px;
+            margin: 0 14px 0 14px;
         }
 
         .svgcontainer {
             float: right;
-            margin: 2px;
-            width: 1500px;
-            height: 800px;
+            /*margin: 2px;*/
+            /*height: 880px;*/
         }
 
         .control {
             margin: 4px;
             float: left;
             width: 300px;
-            height: 400px;
+            /*height: 400px;*/
         }
 
         .timeinput {
@@ -149,31 +239,13 @@
 <div class="wrapper">
     <div class="svgcontainer"></div>
     <div class="control">
-        <label>Date &amp; time:</label>
+        <label>Year:</label>
         <input type="text" id="timestart" readonly style="border:0; font-size: 14px">
         to
         <input type="text" id="timeend" readonly style="border:0; font-size: 14px">
         <div id="time-range"></div>
-        <!--
-        <div style="margin: 4px">
-            <input class="dateinput" type="text" id="datepicker">
-        </div>
-        <div style="margin: 4px">
-            <input class="timeinput" name="hours" type="text" id="m22" value="0" size="2"
-                   maxlength="2" placeholder="HH">
-            :
-            <input class="timeinput" name="min" type="text" id="min" value="0" size="2"
-                   maxlength="2"
-                   placeholder="MM">
-            :
-            <input class="timeinput" name="sec" type="text" id="sec" value="0" size="2"
-                   maxlength="2"
-                   placeholder="SS">
-            (24h:min:sec)
-        </div>
-        -->
         <p>
-            <label for="amount">AuthorId:</label>
+            <label>AuthorId:</label>
             <input type="text" id="sid" readonly style="border:0; font-size: 14px">
             to
             <input type="text" id="eid" readonly style="border:0; font-size: 14px">
@@ -209,6 +281,16 @@
             slide: function (event, ui) {
                 $("#timestart").val(ui.values[0]);
                 $("#timeend").val(ui.values[1]);
+
+                d3.select(".svgb").selectAll(".bar")
+                        .data(dist).transition().duration(interval * .75).style("fill", function (d) {
+                    var y = moment.unix(d.timestamp).get("year");
+                    if (y >= parseInt(ui.values[0]) && y <= parseInt(ui.values[1])) {
+                        return "#f6a828";
+                    } else {
+                        return "lightgreen";
+                    }
+                });
             }
         });
         $("#timestart").val($("#time-range").slider("values", 0));
