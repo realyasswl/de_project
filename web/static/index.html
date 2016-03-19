@@ -23,7 +23,7 @@
         var barchart = {
             width: 420 - margin.left - margin.right,
             height: window.innerHeight - 40 - margin.top - margin.bottom
-        }
+        };
         var width = barchart.height,
                 height = barchart.height;
 
@@ -66,7 +66,7 @@
                         .scale(y)
                         .orient("top").tickFormat(function (d) {
                             return (d / 1000).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "k";
-                        })
+                        });
 
                 x.domain(dist.map(function (d) {
                     return moment.unix(d.timestamp).format("YY");
@@ -106,7 +106,7 @@
                         })
                         .attr("height", x.rangeBand());
 
-            })
+            });
         }
         function form1submit() {
             var q = {
@@ -114,68 +114,142 @@
                 timeend: parseInt($("#timeend").val()),
                 sid: parseInt($("#sid").val()),
                 eid: parseInt($("#eid").val())
-            }
+            };
             d3.select("#msg").text("searching");
+            d3.select(".svga").selectAll("*").remove();
             d3.csv(baseurl + "search?" + Object.keys(q).map(function (d) {
                         return d + "=" + q[d];
                     }).join("&"), function (error, csv) {
                 if (error) return console.warn(error);
+
+
                 d3.select("#msg").text(csv.length + " records");
                 var svg = d3.select(".svga");
-                svg.selectAll("*").remove();
                 console.log(csv);
                 var nodes = {};
-                var links = csv;
+                var links = csv.slice();
 // Compute the distinct nodes from the links.
                 links.forEach(function (link) {
-                    link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
-                    link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+                    link.source = nodes[link.source] ||
+                            (nodes[link.source] = {name: link.source});
+                    link.target = nodes[link.target] ||
+                            (nodes[link.target] = {name: link.target});
+                    link.value = +link.value;
                 });
-                force.nodes(d3.values(nodes))
+
+                var force = d3.layout.force()
+                        .nodes(d3.values(nodes))
                         .links(links)
+                        .size([width, height])
+                        .linkDistance(120)
+                        .charge(-300)
+                        .on("tick", tick)
                         .start();
 
-                var link = svg.selectAll(".link")
-                        .data(links)
-                        .enter().append("line")
-                        .attr("class", "link");
+// build the arrow.
+                svg.append("svg:defs").selectAll("marker")
+                        .data(["end"])      // Different link/path types can be defined here
+                        .enter().append("svg:marker")    // This section adds in the arrows
+                        .attr("id", String)
+                        .attr("viewBox", "0 -5 10 10")
+                        .attr("refX", 15)
+                        .attr("refY", -1.5)
+                        .attr("markerWidth", 6)
+                        .attr("markerHeight", 6)
+                        .attr("orient", "auto")
+                        .append("svg:path")
+                        .attr("d", "M0,-5L10,0L0,5");
 
+// add the links and the arrows
+                var path = svg.append("svg:g").selectAll("path")
+                        .data(force.links())
+                        .enter().append("svg:path")
+                        //    .attr("class", function(d) { return "link " + d.type; })
+                        .attr("class", function(d) { return "link " + d.type; })
+                        .attr("marker-end", "url(#end)");
+
+// define the nodes
                 var node = svg.selectAll(".node")
                         .data(force.nodes())
-                        .enter().append("circle")
+                        .enter().append("g")
                         .attr("class", "node")
-                        .attr("r", 5)
-                        .style("fill", function (d) {
-                            return color(d.group);
-                        })
                         .call(force.drag);
 
-                node.append("title")
+// add the nodes
+                node.append("circle")
+                        .attr("r", 5);
+
+// add the text
+                node.append("text")
+                        .attr("x", 12)
+                        .attr("dy", ".35em")
                         .text(function (d) {
                             return d.name;
                         });
 
-                force.on("tick", function () {
-                    link.attr("x1", function (d) {
-                                return Math.max(5, Math.min(width - 5, d.source.x));
-                            })
-                            .attr("y1", function (d) {
-                                return Math.max(5, Math.min(height - 5, d.source.y));
-                            })
-                            .attr("x2", function (d) {
-                                return Math.max(5, Math.min(width - 5, d.target.x));
-                            })
-                            .attr("y2", function (d) {
-                                return Math.max(5, Math.min(height - 5, d.target.y));
-                            });
+// add the curvy lines
+                function tick() {
+                    path.attr("d", function (d) {
+                        var dx = d.target.x - d.source.x,
+                                dy = d.target.y - d.source.y,
+                                dr = Math.sqrt(dx * dx + dy * dy);
+                        return "M" +
+                                d.source.x + "," +
+                                d.source.y + "A" +
+                                dr + "," + dr + " 0 0,1 " +
+                                d.target.x + "," +
+                                d.target.y;
+                    });
 
-                    node.attr("cx", function (d) {
-                                return Math.max(5, Math.min(width - 5, d.x));
-                            })
-                            .attr("cy", function (d) {
-                                return Math.max(5, Math.min(height - 5, d.y));
+                    node
+                            .attr("transform", function (d) {
+                                return "translate(" + d.x + "," + d.y + ")";
                             });
-                });
+                }
+
+                /*
+                 var link = svg.selectAll(".link")
+                 .data(links)
+                 .enter().append("line")
+                 .attr("class", "link");
+
+                 var node = svg.selectAll(".node")
+                 .data(force.nodes())
+                 .enter().append("circle")
+                 .attr("class", "node")
+                 .attr("r", 5)
+                 .style("fill", function (d) {
+                 return color(d.group);
+                 })
+                 .call(force.drag);
+
+                 node.append("title")
+                 .text(function (d) {
+                 return d.name;
+                 });
+
+                 force.on("tick", function () {
+                 link.attr("x1", function (d) {
+                 return Math.max(5, Math.min(width - 5, d.source.x));
+                 })
+                 .attr("y1", function (d) {
+                 return Math.max(5, Math.min(height - 5, d.source.y));
+                 })
+                 .attr("x2", function (d) {
+                 return Math.max(5, Math.min(width - 5, d.target.x));
+                 })
+                 .attr("y2", function (d) {
+                 return Math.max(5, Math.min(height - 5, d.target.y));
+                 });
+
+                 node.attr("cx", function (d) {
+                 return Math.max(5, Math.min(width - 5, d.x));
+                 })
+                 .attr("cy", function (d) {
+                 return Math.max(5, Math.min(height - 5, d.y));
+                 });
+                 });
+                 */
             });
         }
         function fmt(s) {
@@ -229,8 +303,35 @@
         }
 
         .link {
-            stroke-width: 2px;
+            stroke-width: 2;
             stroke: green;
+        }
+
+        .link.coauthor {
+            stroke: green;
+        }
+
+        .link.temporal {
+            stroke-dasharray: 0,2 1;
+        }
+
+        path.link {
+            fill: none;
+            stroke: #666;
+            stroke-width: 1.5;
+        }
+
+        circle {
+            fill: #ccc;
+            stroke: #fff;
+            stroke-width: 1.5;
+        }
+
+        text {
+            fill: #000;
+            font-size: 10px;
+            font-family: sans-serif;
+            pointer-events: none;
         }
 
     </style>

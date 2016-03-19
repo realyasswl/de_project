@@ -2,6 +2,7 @@ import sqlite3, pickle
 import datetime as dt
 import pytz
 import os
+import math
 
 base_dir = "/home/liwang/STUDY/Y1Q3/de/coauthor/dblp_coauthor/"
 project_dir = "/home/liwang/PycharmProjects/dm_project/"
@@ -53,17 +54,44 @@ def get_snap(timestart, timeend, sid=0, eid=100):
 
     query_author = '''select r.start_id,a.name from relationship r,author a
     where a.authorid=r.start_id and
-    r.timestamp>=?-? and r.timestamp<=? and start_id>=? and start_id<=? order by r.start_id,r.timestamp'''
+    timestamp>=? and timestamp<=? and start_id>=? and start_id<=? and end_id>=? and end_id<=? order by start_id,timestamp'''
 
     linkset = c.execute(query_base, (timestart, timeend, sid, eid, sid, eid,))
     linkres = []
     noderes = []
     for row in linkset:
         linkres.append(row)
-    # nodeset = c.execute(query_author, (time_point, time_length, time_point, sid, eid,))
-    # for row in nodeset:
-    #     noderes.append(row)
+    nodeset = c.execute(query_author, (timestart, timeend, sid, eid, sid, eid,))
+    for row in nodeset:
+        noderes.append(row)
     return noderes, linkres
+
+
+def temprolGraph2generalGraph(list):
+    '''default header = ['source', 'target', 'value', 'ts']'''
+    minyear = 0
+    maxyear = 0
+    nodelist = []
+    resultlist = []
+    for l in list:
+        source = l[0]
+        target = l[1]
+        value = l[2]
+        ts = l[3]
+        year = timestamp2year(ts)
+        resultlist.append(["%d.%d" % (source, year), "%d.%d" % (target, year), value, "coauthor"])
+        if source not in nodelist:
+            nodelist.append(source)
+        maxyear = max(maxyear, year)
+        if minyear == 0:
+            minyear = year
+        else:
+            minyear = min(minyear, year)
+    if minyear < maxyear:
+        for i in range(minyear, maxyear):
+            for id in nodelist:
+                resultlist.append(["%d.%d" % (id, i), "%d.%d" % (id, i + 1), 1, "temporal"])
+    return resultlist
 
 
 def get_distribution():
@@ -85,7 +113,13 @@ def year2timestamp(year):
     '''the timestamp at which papers are published are all 61 seconds after 01/01/year @ 12:00am (UTC)
     we use year parameter to generate the timestamp
     '''
-    return dt.datetime(int(year), 1, 1, 0, 1, 1, 0, pytz.UTC).timestamp()
+    return dt.datetime(year, 1, 1, 0, 1, 1, 0, pytz.UTC).timestamp()
+
+
+def timestamp2year(timestamp):
+    '''in: integer
+    '''
+    return dt.datetime.fromtimestamp(timestamp).timetuple()[0]
 
 
 def get_distribution_from_file():
@@ -103,5 +137,10 @@ def get_distribution_from_file():
 
 
 if __name__ == "__main__":
-    re = get_distribution_from_file()
-    print(re)
+    noderes, linkres = get_snap(timestart=year2timestamp(1984),
+                                timeend=year2timestamp(1986),
+                                sid=0, eid=1000)
+    print("\n".join([",".join([str(x) for x in line]) for line in linkres]))
+
+    resultlist = temprolGraph2generalGraph(linkres)
+    print("\n".join([",".join([str(x) for x in line]) for line in resultlist]))
