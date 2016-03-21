@@ -27,6 +27,12 @@
         var width = barchart.height,
                 height = barchart.height;
 
+        var node_color = {
+            default: "lightgreen", selected: "green"
+        };
+        var path_color = {
+            default: "lightblue", selected: "blue"
+        };
         var color = d3.scale.category20();
 
         var force = d3.layout.force()
@@ -141,8 +147,8 @@
                         .nodes(d3.values(nodes))
                         .links(links)
                         .size([width, height])
-                        .linkDistance(120)
-                        .charge(-300)
+                        .linkDistance(60)
+                        .charge(-100)
                         .on("tick", tick)
                         .start();
 
@@ -158,21 +164,38 @@
                         .attr("markerHeight", 6)
                         .attr("orient", "auto")
                         .append("svg:path")
-                        .attr("d", "M0,-5L10,0L0,5");
+                        .attr("d", "M0,-3L8,0L0,3");
+
+//                console.dir(force.links());
+//                console.dir(force.nodes());
 
 // add the links and the arrows
                 var path = svg.append("svg:g").selectAll("path")
-                        .data(force.links())
+                        .data(force.links(), function (p, i) {
+                            return p.source.name + "->" + p.target.name;
+                        })
                         .enter().append("svg:path")
-                        //    .attr("class", function(d) { return "link " + d.type; })
-                        .attr("class", function(d) { return "link " + d.type; })
-                        .attr("marker-end", "url(#end)");
+                        .attr("class", function (d) {
+                            return "link " + d.type;
+                        })
+                        .attr("marker-end", "url(#end)")
+                        .on("mouseover", function (d) {
+                            if (d.type == "temporal") {
+                                highLightAuthor(d.source);
+                            }
+                        }).on("mouseout", normal)
+                        ;
 
 // define the nodes
                 var node = svg.selectAll(".node")
-                        .data(force.nodes())
+                        .data(force.nodes(), function (n) {
+                            return n.name;
+                        })
                         .enter().append("g")
                         .attr("class", "node")
+                        .on("mouseover", function (d) {
+                            highLightAuthor(d);
+                        }).on("mouseout", normal)
                         .call(force.drag);
 
 // add the nodes
@@ -201,55 +224,49 @@
                                 d.target.y;
                     });
 
-                    node
-                            .attr("transform", function (d) {
-                                return "translate(" + d.x + "," + d.y + ")";
-                            });
+                    node.attr("transform", function (d) {
+                        return "translate(" + d.x + "," + d.y + ")";
+                    });
                 }
 
-                /*
-                 var link = svg.selectAll(".link")
-                 .data(links)
-                 .enter().append("line")
-                 .attr("class", "link");
+                function highLightAuthor(d, i) {
+                    var id = d.name.substring(0, d.name.indexOf("."));
+                    svg.selectAll("path").data(links, function (p, i) {
+                        if (p == "end") {
+                            return p;
+                        }
+                        return p.source.name + "->" + p.target.name;
+                    }).style("stroke", function (p) {
+                        var pid = p.source.name.substring(0, p.source.name.indexOf("."));
+                        if (p.type == "temporal" && id == pid) {
+                            return path_color.selected;
+                        } else {
+                            return path_color.default;
+                        }
+                    });
+                    svg.selectAll(".node").data(force.nodes(), function (n) {
+                        return n.name;
+                    }).select("circle").style("fill", function (n) {
+                        var nid = n.name.substring(0, n.name.indexOf("."));
+                        if (id == nid) {
+                            return node_color.selected;
+                        } else {
+                            return node_color.default;
+                        }
+                    });
+                }
 
-                 var node = svg.selectAll(".node")
-                 .data(force.nodes())
-                 .enter().append("circle")
-                 .attr("class", "node")
-                 .attr("r", 5)
-                 .style("fill", function (d) {
-                 return color(d.group);
-                 })
-                 .call(force.drag);
-
-                 node.append("title")
-                 .text(function (d) {
-                 return d.name;
-                 });
-
-                 force.on("tick", function () {
-                 link.attr("x1", function (d) {
-                 return Math.max(5, Math.min(width - 5, d.source.x));
-                 })
-                 .attr("y1", function (d) {
-                 return Math.max(5, Math.min(height - 5, d.source.y));
-                 })
-                 .attr("x2", function (d) {
-                 return Math.max(5, Math.min(width - 5, d.target.x));
-                 })
-                 .attr("y2", function (d) {
-                 return Math.max(5, Math.min(height - 5, d.target.y));
-                 });
-
-                 node.attr("cx", function (d) {
-                 return Math.max(5, Math.min(width - 5, d.x));
-                 })
-                 .attr("cy", function (d) {
-                 return Math.max(5, Math.min(height - 5, d.y));
-                 });
-                 });
-                 */
+                function normal(d, i) {
+                    svg.selectAll("path").data(links, function (p, i) {
+                        if (p == "end") {
+                            return p;
+                        }
+                        return p.source.name + "->" + p.target.name;
+                    }).style("stroke", path_color.default);
+                    svg.selectAll(".node").data(force.nodes(), function (n) {
+                        return n.name;
+                    }).select("circle").style("fill", node_color.default);
+                }
             });
         }
         function fmt(s) {
@@ -303,26 +320,21 @@
         }
 
         .link {
-            stroke-width: 2;
-            stroke: green;
+            fill: none;
+            stroke-width: 1.8;
+            stroke: lightblue;
         }
 
         .link.coauthor {
-            stroke: green;
+            /*stroke: ;*/
         }
 
         .link.temporal {
-            stroke-dasharray: 0,2 1;
-        }
-
-        path.link {
-            fill: none;
-            stroke: #666;
-            stroke-width: 1.5;
+            stroke-dasharray: 0, 2 1;
         }
 
         circle {
-            fill: #ccc;
+            fill: lightgreen;
             stroke: #fff;
             stroke-width: 1.5;
         }
