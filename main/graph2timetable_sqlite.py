@@ -67,12 +67,25 @@ def get_snap(timestart, timeend, sid=0, eid=100):
     return noderes, linkres
 
 
+def get_stream(timestart, timeend, sid=0, eid=100):
+    query_base = '''select count(*),start_id,timestamp from relationship
+    where timestamp>=? and timestamp<=? and start_id>=? and start_id<=? and end_id>=? and end_id<=?
+    group by start_id,timestamp order by start_id,timestamp'''
+    resultset = c.execute(query_base, (timestart, timeend, sid, eid, sid, eid,))
+    result = []
+    for row in resultset:
+        result.append(row)
+    print("%d records" % len(result))
+    return result
+
+
 def temprolGraph2generalGraph(list):
     '''default header = ['source', 'target', 'value', 'ts']'''
     minyear = 0
     maxyear = 0
     nodelist = []
     resultlist = []
+    haslink = [[0 for x in range(minyear,maxyear)] for x in range(list)]
     for l in list:
         source = l[0]
         target = l[1]
@@ -80,6 +93,7 @@ def temprolGraph2generalGraph(list):
         ts = l[3]
         year = timestamp2year(ts)
         resultlist.append(["%d.%d" % (source, year), "%d.%d" % (target, year), value, "coauthor"])
+        haslink[source][year] = 1
         if source not in nodelist:
             nodelist.append(source)
         maxyear = max(maxyear, year)
@@ -88,9 +102,17 @@ def temprolGraph2generalGraph(list):
         else:
             minyear = min(minyear, year)
     if minyear < maxyear:
-        for i in range(minyear, maxyear):
-            for id in nodelist:
-                resultlist.append(["%d.%d" % (id, i), "%d.%d" % (id, i + 1), 1, "temporal"])
+        for id in nodelist:
+            i = minyear
+            while haslink[id][i] or i <= maxyear:
+                if haslink[id,i]:
+                    j = i + i
+                    while haslink[id][j] or j <= maxyear:
+                        j += 1
+                    resultlist.append(["%d.%d" % (id, i), "%d.%d" % (id, j), 1, "temporal"])
+                    i = j
+                else:
+                    i += 1
     return resultlist
 
 
