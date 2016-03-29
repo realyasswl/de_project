@@ -67,6 +67,18 @@ def get_snap(timestart, timeend, sid=0, eid=100):
     return noderes, linkres
 
 
+def get_stream(timestart, timeend, sid=0, eid=100):
+    query_base = '''select count(*),start_id,timestamp from relationship
+    where timestamp>=? and timestamp<=? and start_id>=? and start_id<=? and end_id>=? and end_id<=?
+    group by start_id,timestamp order by start_id,timestamp'''
+    resultset = c.execute(query_base, (timestart, timeend, sid, eid, sid, eid,))
+    result = []
+    for row in resultset:
+        result.append(row)
+    print("%d records" % len(result))
+    return result
+
+
 def temprolGraph2generalGraph(list):
     '''default header = ['source', 'target', 'value', 'ts']'''
     minyear = 0

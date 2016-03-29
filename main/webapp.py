@@ -5,7 +5,6 @@ from tornado.wsgi import WSGIContainer
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 
-
 app = Flask(__name__, static_url_path="/static/", static_folder="../web/static")
 
 
@@ -30,13 +29,20 @@ def search():
     timeend = request.args["timeend"]
     sid = request.args["sid"]
     eid = request.args["eid"]
-    print("year from %s to %s, author from %s to %s" % (timestart, timeend, sid, eid))
-    linkheader = ['source', 'target', 'value', 'type']
-    noderes, linkres = g2ts.get_snap(timestart=g2ts.year2timestamp(int(timestart)),
-                                     timeend=g2ts.year2timestamp(int(timeend)),
-                                     sid=int(sid), eid=int(eid))
+    output = request.args["output"]
+    print("output %s year from %s to %s, author from %s to %s" % (output, timestart, timeend, sid, eid))
+    if output == "stream":
+        stream = g2ts.get_stream(timestart=g2ts.year2timestamp(int(timestart)),
+                                 timeend=g2ts.year2timestamp(int(timeend)),
+                                 sid=int(sid), eid=int(eid))
+        return Response(g2ts.tupleList2csv(stream, csvheader=["count,source,timestamp"]))
+    else:
+        linkheader = ['source', 'target', 'value', 'type']
+        noderes, linkres = g2ts.get_snap(timestart=g2ts.year2timestamp(int(timestart)),
+                                         timeend=g2ts.year2timestamp(int(timeend)),
+                                         sid=int(sid), eid=int(eid))
 
-    return Response(g2ts.tupleList2csv(g2ts.temprolGraph2generalGraph(linkres), csvheader=linkheader))
+        return Response(g2ts.tupleList2csv(g2ts.temprolGraph2generalGraph(linkres), csvheader=linkheader))
 
 
 @app.route("/init")
