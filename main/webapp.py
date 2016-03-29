@@ -30,7 +30,9 @@ def search():
     sid = request.args["sid"]
     eid = request.args["eid"]
     output = request.args["output"]
-    print("output %s year from %s to %s, author from %s to %s" % (output, timestart, timeend, sid, eid))
+    reduce = request.args["reduce"]
+    print("output %s year from %s to %s, author from %s to %s, reduce:%s" % (
+        output, timestart, timeend, sid, eid, reduce))
     if output == "stream":
         stream = g2ts.get_stream(timestart=g2ts.year2timestamp(int(timestart)),
                                  timeend=g2ts.year2timestamp(int(timeend)),
@@ -42,7 +44,8 @@ def search():
                                          timeend=g2ts.year2timestamp(int(timeend)),
                                          sid=int(sid), eid=int(eid))
 
-        return Response(g2ts.tupleList2csv(g2ts.temprolGraph2generalGraph(linkres), csvheader=linkheader))
+        return Response(
+            g2ts.tupleList2csv(g2ts.temprolGraph2generalGraph(linkres, reduce=reduce == "true"), csvheader=linkheader))
 
 
 @app.route("/init")
