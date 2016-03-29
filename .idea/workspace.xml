@@ -27,14 +27,14 @@
       <file leaf-file-name="connected_components.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main/connected_components.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.31554523">
-              <caret line="16" column="16" selection-start-line="16" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.2761021">
+              <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
               <folding>
                 <element signature="e#184#198#0" expanded="true" />
-                <marker date="1459239506095" expanded="true" signature="341:381" placeholder="select `id` authors" />
-                <marker date="1459239506095" expanded="true" signature="726:813" placeholder="select `out`... edges2" />
-                <marker date="1459239506095" expanded="true" signature="1412:1499" placeholder="select `out`... edges2" />
-                <marker date="1459239506095" expanded="true" signature="1894:1964" placeholder="update edges... " />
+                <marker date="1459242049326" expanded="true" signature="341:381" placeholder="select `id` authors" />
+                <marker date="1459242049326" expanded="true" signature="666:723" placeholder="select `out`... edges2" />
+                <marker date="1459242049326" expanded="true" signature="1077:1164" placeholder="select `out`... edges2" />
+                <marker date="1459242049326" expanded="true" signature="1559:1629" placeholder="update edges... " />
               </folding>
             </state>
           </provider>
@@ -460,14 +460,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main/connected_components.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.31554523">
-          <caret line="16" column="16" selection-start-line="16" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.2761021">
+          <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
           <folding>
             <element signature="e#184#198#0" expanded="true" />
-            <marker date="1459239506095" expanded="true" signature="341:381" placeholder="select `id` authors" />
-            <marker date="1459239506095" expanded="true" signature="726:813" placeholder="select `out`... edges2" />
-            <marker date="1459239506095" expanded="true" signature="1412:1499" placeholder="select `out`... edges2" />
-            <marker date="1459239506095" expanded="true" signature="1894:1964" placeholder="update edges... " />
+            <marker date="1459242049326" expanded="true" signature="341:381" placeholder="select `id` authors" />
+            <marker date="1459242049326" expanded="true" signature="666:723" placeholder="select `out`... edges2" />
+            <marker date="1459242049326" expanded="true" signature="1077:1164" placeholder="select `out`... edges2" />
+            <marker date="1459242049326" expanded="true" signature="1559:1629" placeholder="update edges... " />
           </folding>
         </state>
       </provider>
