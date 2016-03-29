@@ -1,14 +1,16 @@
 # load data  infile '/tmp/rd/out.dblp_coauthor' into table edges  fields terminated by ' '  enclosed by '"'  lines terminated by '\n' ignore 1 lines  (`in`,`out`,@weight,`timestamp`);
 import MySQLdb
 from pprint import pprint
-db=MySQLdb.connect(user="root",passwd="",db="dataeng")
+db=MySQLdb.connect(user="root",passwd="678922e03",db="dataeng")
 
 def components():
     c=db.cursor()
     c.execute("select `id` from authors order by rand()")
     nodes = set([item[0] for item in c.fetchall()])
-    cs = set([])
-    qcount = 0
+    c.execute("SET GLOBAL general_log = 'OFF';")
+    cnum = 0;
+
+    # Loop until all the nodes have been processed
     while len(nodes) > 0:
         node = nodes.pop()
         component = {node}
@@ -20,8 +22,8 @@ def components():
             print(c._last_executed)
             raise
         bfs = {item[0] for item in c.fetchall()}
-        qcount += 1
-        if qcount % 100 == 0: print(".")
+
+        # Loop until there are no more new edges in this component
         while len(bfs) > 0:
             component |= bfs
             format_strings = ','.join(['%s'] * len(component))
@@ -32,13 +34,20 @@ def components():
                 print(c._last_executed)
                 raise
             bfs = {item[0] for item in c.fetchall()}
-            qcount += 1
-            if qcount % 100 == 0: print(".")
+
         nodes -= component
+
+        # Save the component number to all the edges
+        format_strings = ','.join(['%s'] * len(component))
+        c.execute("SET GLOBAL general_log = 'ON';")
+        c.execute("update edges2 set `component` = '" + str(cnum) + "' where `in` in (%s)" % format_strings, tuple(component))
+        c.execute("SET GLOBAL general_log = 'OFF';")
+        db.commit()
         #fcomponent = frozenset(component)
         #cs.add(fcomponent)
-        print("size of component:" + str(len(component)))
-    print("amount of components found:" + str(len(cs)))
-    return cs
+        print(str(len(component)))
+        cnum += 1
+    c.close()
 
 components()
+db.close()
