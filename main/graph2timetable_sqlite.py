@@ -4,8 +4,8 @@ import pytz
 import os
 import math
 
-base_dir = "/home/liwang/STUDY/Y1Q3/de/coauthor/dblp_coauthor/"
-project_dir = "/home/liwang/PycharmProjects/dm_project/"
+base_dir = "."#"/home/liwang/STUDY/Y1Q3/de/coauthor/dblp_coauthor/"
+project_dir = "."#"/home/liwang/PycharmProjects/dm_project/"
 conn = sqlite3.connect(base_dir + "sqlite3.db")
 c = conn.cursor()
 '''
