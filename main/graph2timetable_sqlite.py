@@ -5,8 +5,8 @@ import os
 import numpy as np
 import math
 
-base_dir = "/home/liwang/STUDY/Y1Q3/de/coauthor/dblp_coauthor/"
-project_dir = "/home/liwang/PycharmProjects/dm_project/"
+base_dir = "."#"/home/liwang/STUDY/Y1Q3/de/coauthor/dblp_coauthor/"
+project_dir = "."#"/home/liwang/PycharmProjects/dm_project/"
 conn = sqlite3.connect(base_dir + "sqlite3.db")
 c = conn.cursor()
 '''
@@ -19,7 +19,7 @@ one_year = 60 * 60 * 24 * 365
 one_month = 60 * 60 * 24 * 30
 min_time = -1009843139;
 max_time = 1388534461;
-min_dt = dt.datetime.fromtimestamp(min_time)
+min_dt = dt.datetime(1970, 1, 1) + dt.timedelta(seconds=min_time)
 max_dt = dt.datetime.fromtimestamp(max_time)
 
 
