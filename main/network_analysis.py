@@ -3,32 +3,32 @@ import MySQLdb
 import networkx as nx
 db=MySQLdb.connect(user="root",passwd="678922e03",db="dataeng")
 
-def maxdepthcomponent(d):
+def maxdepthcomponent(depth, author_id):
     c=db.cursor()
     # c.execute("select `id` from authors order by rand() limit 1")
     # nodes = set([item[0] for item in c.fetchall()])
     component = []
-    bfs = {705102}
+    bfs = {author_id}
     c.execute("SET GLOBAL general_log = 'OFF';")
     cnum = 0
 
     min_time = 1230768061 - 5 * 31536000
     max_time = 1230768061 + 5 * 31536000
     # Loop until there are no more new edges in this component
-    while len(bfs) > 0 and d > 0:
+    while len(bfs) > 0 and depth > 0:
         format_strings = ','.join(['%s'] * len(bfs))
         print(len(bfs))
         try:
             # SELECT id, out, timestamp FROM edges2 WHERE `in` IN (S) AND timestamp <= ? and timestamp >= ?
 
-            c.execute("select `id`, `in`, `out`, `timestamp` from edges2 where `in` in (%s)" % format_strings + " and `out` not in (%s)" % format_strings + " and `timestamp` >= %s and `timestamp` <= %s", tuple(2 * list(bfs) + [min_time, max_time]))
+            c.execute("select `id`, `in`, `out`, `timestamp` from edges2 where (`in` in (%s)" % format_strings + " or `out` in (%s)" % format_strings + ") and `timestamp` >= %s and `timestamp` <= %s", tuple(2 * list(bfs) + [min_time, max_time]))
         except:
             print(c._last_executed)
             raise
         result = [item for item in c.fetchall()]
         component += result
         bfs = {item[2] for item in result}
-        d -= 1
+        depth -= 1
 
     print(len(component))
     c.close()
@@ -37,7 +37,8 @@ def maxdepthcomponent(d):
 
 
 # component will contain all the link-edges between nodes in the max-depth induced graph
-component = maxdepthcomponent(3)
+author_id=705102
+component = maxdepthcomponent(depth=3, author_id=author_id)
 
 
 
@@ -75,11 +76,11 @@ G.add_nodes_from(nodes)
 G.add_edges_from(temporal_edges)
 G.add_edges_from(collab_edges)
 
-bt = nx.betweenness_centrality(G, normalized=True)
+bt = nx.betweenness_centrality(G, normalized=False)
 
 
 # get all the temporal nodes of the author
-author_tnodes = {(705102, ts) for ts in timestamps}
+author_tnodes = {(author_id, ts) for ts in timestamps}
 
 # get the sum of values
 author_score = sum({bt[node] for node in author_tnodes})

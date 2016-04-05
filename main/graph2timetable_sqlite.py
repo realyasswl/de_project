@@ -18,7 +18,7 @@ one_year = 60 * 60 * 24 * 365
 one_month = 60 * 60 * 24 * 30
 min_time = -1009843139;
 max_time = 1388534461;
-min_dt = dt.datetime.fromtimestamp(min_time)
+min_dt = dt.datetime(1970, 1, 1) + dt.timedelta(seconds=min_time)
 max_dt = dt.datetime.fromtimestamp(max_time)
 
 
