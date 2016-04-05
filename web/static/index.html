@@ -36,11 +36,8 @@
         };
         var color = d3.scale.category20();
 
-        var force = d3.layout.force()
-                .charge(-120)
-                .linkDistance(30)
-                .size([width, height]);
         var dist = [];
+
 
         function init() {
             d3.select(".svgcontainer").append("svg").attr("class", "svgc")
@@ -120,18 +117,24 @@
                 timeend: parseInt($("#timeend").val()),
                 sid: parseInt($("#sid").val()),
                 eid: parseInt($("#eid").val()),
-                output: "stream"
+                output: $('[name="displaytype"]:checked').val(),
+                reduce: reduce
             };
             d3.select("#msg").text("searching");
             d3.select(".svga").selectAll("*").remove();
+//                console.log(q.output);
+            console.log(q.reduce);
             d3.csv(baseurl + "search?" + Object.keys(q).map(function (d) {
                         return d + "=" + q[d];
                     }).join("&"), function (error, csv) {
-                if (error) return console.warn(error);
+                if (error) {
+                    d3.select("#msg").text("Error occurs!");
+                    return console.warn(error);
+                }
 
                 d3.select("#msg").text(csv.length + " records");
                 var svg = d3.select(".svga");
-                console.log(csv);
+//                console.log(csv);
 //    stream header:            ["count,source,timestamp"]
 
                 if (q.output == "stream") {
@@ -243,8 +246,8 @@
                             .nodes(d3.values(nodes))
                             .links(links)
                             .size([width, height])
-                            .linkDistance(60)
-                            .charge(-100)
+                            .linkDistance(100)
+                            .charge(-180)
                             .on("tick", tick)
                             .start();
 
@@ -371,6 +374,14 @@
         }
     </script>
     <style>
+        [type=radio], [type=checkbox], input[type="checkbox"], input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            opacity: 1;
+            position: relative;
+            display: inline-block;
+        }
+
         .bar {
             fill: #f6a828;
         }
@@ -456,59 +467,85 @@
         <div id="time-range"></div>
         <p>
             <label>AuthorId:</label>
-            <input type="text" id="sid" readonly style="border:0; font-size: 14px">
+            <input type="text" id="sid" style="border:0; font-size: 14px" onkeyup="sidchange(this.value);">
             to
-            <input type="text" id="eid" readonly style="border:0; font-size: 14px">
+            <input type="text" id="eid" style="border:0; font-size: 14px" onkeyup="eidchange(this.value)">
         </p>
         <div id="amount-range"></div>
+        <p>
+            <label>Temproal graph</label>
+            <input type="radio" name="displaytype" value="temproal" checked="checked"/>
+            <label>Stream graph</label>
+            <input type="radio" name="displaytype" value="stream"/>
+        </p>
+        <p><label>Reduce node</label>
+            <input type="checkbox" id="reducenode" checked="checked" onclick="reduceclick(this)"/>
+        </p>
         <p>
             <button onclick="form1submit()">Query</button>
         </p>
         <p id="msg"></p>
-        <input type="radio" name="displaytype" value="temproal"/>Temproal graph</br>
-        <input type="radio" name="displaytype" value="stream"/>Stream graph
-        </p>
     </div>
 </div>
 <script>
-    $(function () {
-        $("#amount-range").slider({
-            range: true,
-            min: 0,
-            max: 1314050,
-            values: [0, 1000],
-            slide: function (event, ui) {
-                $("#sid").val(ui.values[0]);
-                $("#eid").val(ui.values[1]);
-            }
-        });
-        $("#sid").val($("#amount-range").slider("values", 0));
-        $("#eid").val($("#amount-range").slider("values", 1));
-    });
     $(function () {
         $("#time-range").slider({
             range: true,
             min: 1938,
             max: 2014,
             values: [1938, 2014],
-            slide: function (event, ui) {
-                $("#timestart").val(ui.values[0]);
-                $("#timeend").val(ui.values[1]);
-
-                d3.select(".svgb").selectAll(".bar")
-                        .data(dist).transition().duration(interval * .75).style("fill", function (d) {
-                    var y = moment.unix(d.timestamp).get("year");
-                    if (y >= parseInt(ui.values[0]) && y <= parseInt(ui.values[1])) {
-                        return "#f6a828";
-                    } else {
-                        return "lightgreen";
-                    }
-                });
-            }
+            slide: func,
+            change: func
         });
+
+        function func(event, ui) {
+            $("#timestart").val(ui.values[0]);
+            $("#timeend").val(ui.values[1]);
+
+            d3.select(".svgb").selectAll(".bar")
+                    .data(dist).transition().duration(interval * .75).style("fill", function (d) {
+                var y = moment.unix(d.timestamp).get("year");
+                if (y >= parseInt(ui.values[0]) && y <= parseInt(ui.values[1])) {
+                    return "#f6a828";
+                } else {
+                    return "lightgreen";
+                }
+            });
+        }
+
         $("#timestart").val($("#time-range").slider("values", 0));
         $("#timeend").val($("#time-range").slider("values", 1));
     });
+    $(function () {
+        $("#amount-range").slider({
+            range: true,
+            min: 0,
+            max: 1314050,
+            values: [0, 1000],
+            slide: func,
+            change: func
+        });
+        function func(event, ui) {
+            $("#sid").val(ui.values[0]);
+            $("#eid").val(ui.values[1]);
+        }
+
+        $("#sid").val($("#amount-range").slider("values", 0));
+        $("#eid").val($("#amount-range").slider("values", 1));
+    });
+    function sidchange(a) {
+        console.dir(a);
+        $("#amount-range").slider("values", 0, Math.min($("#amount-range").slider("values", 1), parseInt(a)));
+    }
+
+    function eidchange(a) {
+        console.dir(a);
+        $("#amount-range").slider("values", 1, Math.max($("#amount-range").slider("values", 0), parseInt(a)));
+    }
+    var reduce = true;
+    function reduceclick(a) {
+        reduce = a.checked;
+    }
     var picker = new Pikaday({
         format: 'YYYY-MM-DD',
         field: document.getElementById('datepicker'),

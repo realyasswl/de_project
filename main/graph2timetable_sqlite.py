@@ -2,6 +2,7 @@ import sqlite3, pickle
 import datetime as dt
 import pytz
 import os
+import numpy as np
 import math
 
 base_dir = "/home/liwang/STUDY/Y1Q3/de/coauthor/dblp_coauthor/"
@@ -79,40 +80,43 @@ def get_stream(timestart, timeend, sid=0, eid=100):
     return result
 
 
-def temprolGraph2generalGraph(list):
+def temprolGraph2generalGraph(list, reduce=True):
     '''default header = ['source', 'target', 'value', 'ts']'''
     minyear = 0
     maxyear = 0
     nodelist = []
     resultlist = []
-    haslink = [[0 for x in range(minyear,maxyear)] for x in range(list)]
+    sufnodelist = []
     for l in list:
         source = l[0]
         target = l[1]
         value = l[2]
         ts = l[3]
         year = timestamp2year(ts)
-        resultlist.append(["%d.%d" % (source, year), "%d.%d" % (target, year), value, "coauthor"])
-        haslink[source][year] = 1
+        sourcesuf = "%d.%d" % (source, year)
+        resultlist.append([sourcesuf, "%d.%d" % (target, year), value, "coauthor"])
         if source not in nodelist:
             nodelist.append(source)
+        if sourcesuf not in sufnodelist:
+            sufnodelist.append(sourcesuf)
         maxyear = max(maxyear, year)
         if minyear == 0:
             minyear = year
         else:
             minyear = min(minyear, year)
-    if minyear < maxyear:
-        for id in nodelist:
-            i = minyear
-            while haslink[id][i] or i <= maxyear:
-                if haslink[id,i]:
-                    j = i + i
-                    while haslink[id][j] or j <= maxyear:
-                        j += 1
-                    resultlist.append(["%d.%d" % (id, i), "%d.%d" % (id, j), 1, "temporal"])
-                    i = j
-                else:
-                    i += 1
+
+        if minyear < maxyear:
+            if reduce:
+                tempnode = ""
+                for id in sufnodelist:
+                    if tempnode[:-5] == id[:-5]:
+                        resultlist.append([tempnode, id, 1, "temporal"])
+                    tempnode = id
+            else:
+                for i in range(minyear, maxyear):
+                    for id in nodelist:
+                        resultlist.append(["%d.%d" % (id, i), "%d.%d" % (id, i + 1), 1, "temporal"])
+
     return resultlist
 
 
